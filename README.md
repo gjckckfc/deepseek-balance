@@ -2,6 +2,10 @@
 
 一个始终置顶、可拖动、半透明的桌面悬浮小插件，实时显示你的 DeepSeek 账户余额。
 
+## 效果预览
+
+![DeepSeek 余额悬浮窗](screenshot.png)
+
 ## 它读取的是什么数据？
 
 你给的网址 `https://platform.deepseek.com/usage` 是登录后展示余额的页面，需要登录会话、无法直接被程序抓取。
