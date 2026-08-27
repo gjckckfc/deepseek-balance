@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeepSeek 余额</title>
+<style>
+  :root{
+    --ink:#54514b;
+    --ink-soft:#8d8a82;
+    --accent:#5d7d74;
+    --accent-soft:#8aa79c;
+    --card-bg:linear-gradient(135deg, rgba(245,241,234,0.74), rgba(222,229,225,0.68));
+    --line:rgba(255,255,255,0.55);
+  }
+  *{box-sizing:border-box; -webkit-user-select:none; user-select:none;}
+  html,body{margin:0; padding:0; height:100%; background:transparent;
+    font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; color:var(--ink);}
+  #app{width:360px; height:320px; display:flex; align-items:center; justify-content:center;}
+  .card{
+    width:340px; height:100%; padding:16px 18px 14px;
+    display:flex; flex-direction:column;
+    background:var(--card-bg);
+    backdrop-filter:blur(16px) saturate(120%);
+    -webkit-backdrop-filter:blur(16px) saturate(120%);
+    border:1px solid var(--line);
+    border-radius:20px;
+    box-shadow:0 10px 34px rgba(110,110,110,0.20);
+    position:relative; overflow:hidden;
+  }
+  .titlebar{display:flex; align-items:center; justify-content:space-between; cursor:grab;}
+  .titlebar:active{cursor:grabbing;}
+  .brand{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; letter-spacing:.3px; color:var(--ink);}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--accent-soft);
+    box-shadow:0 0 0 0 rgba(138,167,156,.5); animation:pulse 2.4s infinite ease-out;}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(138,167,156,.45);}
+    70%{box-shadow:0 0 0 9px rgba(138,167,156,0);}
+    100%{box-shadow:0 0 0 0 rgba(138,167,156,0);}
+  }
+  .ctrls{display:flex; gap:6px;}
+  .btn{width:24px; height:24px; border:none; border-radius:8px; background:rgba(255,255,255,0.35);
+    color:var(--ink-soft); cursor:pointer; font-size:13px; line-height:1;
+    display:flex; align-items:center; justify-content:center; transition:background .25s, transform .15s;}
+  .btn:hover{background:rgba(255,255,255,0.7); color:var(--ink);}
+  .btn:active{transform:scale(.92);}
+  .balance-wrap{margin-top:14px; text-align:left;}
+  .label{font-size:11px; color:var(--ink-soft); letter-spacing:.5px;}
+  .balance{font-size:40px; font-weight:700; line-height:1.1; color:var(--accent); margin-top:2px; letter-spacing:.5px;}
+  .balance .cur{font-size:18px; font-weight:600; color:var(--accent-soft); margin-left:4px;}
+  .sub{display:flex; gap:18px; margin-top:10px;}
+  .sub .item .k{font-size:10px; color:var(--ink-soft);}
+  .sub .item .v{font-size:14px; color:var(--ink); font-weight:600; margin-top:1px;}
+  .foot{margin-top:auto; display:flex; align-items:center; justify-content:space-between; font-size:11px; color:var(--ink-soft);}
+  .count{font-variant-numeric:tabular-nums;}
+  .status{display:flex; align-items:center; gap:5px;}
+  .status .sdot{width:7px; height:7px; border-radius:50%; background:#b9b6ad; transition:background .3s;}
+  .status.ok .sdot{background:#7fae9b;}
+  .status.err .sdot{background:#c98f86;}
+  .overlay{position:absolute; inset:0; background:rgba(238,235,229,0.88); backdrop-filter:blur(6px);
+    display:none; flex-direction:column; padding:18px; gap:10px; overflow-y:auto; overscroll-behavior:contain;}
+  .overlay::-webkit-scrollbar{width:6px;}
+  .overlay::-webkit-scrollbar-thumb{background:rgba(150,150,150,.35); border-radius:3px;}
+  .overlay::-webkit-scrollbar-track{background:transparent;}
+  .overlay.show{display:flex;}
+  .ov-head{display:flex; align-items:center; justify-content:space-between;}
+  .ov-head h3{margin:0; font-size:14px; color:var(--ink);}
+  .ov-close{width:22px; height:22px; border:none; border-radius:7px; background:rgba(255,255,255,0.4);
+    color:var(--ink-soft); cursor:pointer; font-size:12px; line-height:1;
+    display:flex; align-items:center; justify-content:center; transition:background .25s;}
+  .ov-close:hover{background:rgba(255,255,255,0.78); color:var(--ink);}
+  .overlay p{margin:0; font-size:11px; color:var(--ink-soft); line-height:1.5;}
+  .field label{font-size:11px; color:var(--ink-soft); display:block; margin-bottom:4px;}
+  .field input{width:100%; padding:8px 10px; border:1px solid rgba(150,150,150,.25); border-radius:10px;
+    background:rgba(255,255,255,.55); color:var(--ink); font-size:13px; outline:none;}
+  .field input:focus{border-color:var(--accent-soft);}
+  .actions{display:flex; gap:8px; margin-top:4px;}
+  .primary{flex:1; padding:9px; border:none; border-radius:10px; background:linear-gradient(135deg,#7d9a90,#5d7d74);
+    color:#fff; font-size:13px; cursor:pointer; transition:opacity .2s, transform .15s;}
+  .primary:hover{opacity:.92;}
+  .primary:active{transform:scale(.98);}
+  .ghost{padding:9px 12px; border:1px solid rgba(150,150,150,.3); border-radius:10px; background:transparent;
+    color:var(--ink-soft); font-size:13px; cursor:pointer;}
+  .hint{color:#c08a80;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="card">
+    <div class="titlebar" id="titlebar">
+      <div class="brand"><span class="dot"></span>DeepSeek 余额</div>
+      <div class="ctrls">
+        <button class="btn" id="btnSettings" title="设置">&#9881;</button>
+        <button class="btn" id="btnMin" title="最小化">&#8212;</button>
+        <button class="btn" id="btnClose" title="关闭">&#10005;</button>
+      </div>
+    </div>
+
+    <div class="balance-wrap">
+      <div class="label">当前可用余额</div>
+      <div class="balance"><span id="balance">--.--</span><span class="cur" id="cur">USD</span></div>
+      <div class="sub">
+        <div class="item"><div class="k">赠送余额</div><div class="v" id="granted">--</div></div>
+        <div class="item"><div class="k">充值余额</div><div class="v" id="topped">--</div></div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <div class="status" id="status"><span class="sdot"></span><span id="statusText">连接中…</span></div>
+      <div class="count">刷新 <span id="count">15</span>s</div>
+    </div>
+
+    <div class="overlay" id="overlay">
+      <div class="ov-head">
+        <h3>设置</h3>
+        <button class="ov-close" id="btnOverlayClose" title="关闭">&#10005;</button>
+      </div>
+      <p id="ovHint">填入你的 DeepSeek API Key（在 platform.deepseek.com 的 API Keys 页面创建）。余额通过官方接口实时读取，即为 usage 页面显示的余额。</p>
+      <div class="field">
+        <label>API Key</label>
+        <input id="apikey" type="password" placeholder="sk-..." autocomplete="off">
+      </div>
+      <div class="field">
+        <label>刷新间隔（秒，最小 5）</label>
+        <input id="interval" type="number" min="5" value="15">
+      </div>
+      <div class="actions">
+        <button class="primary" id="btnSave">保存</button>
+        <button class="ghost" id="btnCancel">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let intervalSec = 15, countdown = 15, masterTimer = null;
+  const $ = id => document.getElementById(id);
+
+  function setStatus(state, text){
+    const s = $('status'); s.className = 'status ' + (state || '');
+    $('statusText').textContent = text || (state === 'ok' ? '实时' : '连接中…');
+  }
+  function updateCountdown(){ $('count').textContent = Math.max(0, countdown); }
+
+  function showBalance(res){
+    const info = res.info || {};
+    $('balance').textContent = info.total_balance != null ? info.total_balance : '--';
+    $('cur').textContent = info.currency || 'USD';
+    $('granted').textContent = (info.currency || '') + ' ' + (info.granted_balance != null ? info.granted_balance : '--');
+    $('topped').textContent = (info.currency || '') + ' ' + (info.topped_up_balance != null ? info.topped_up_balance : '--');
+    const now = new Date();
+    const t = [now.getHours(), now.getMinutes(), now.getSeconds()]
+      .map(n => n.toString().padStart(2, '0')).join(':');
+    setStatus('ok', '实时 · ' + t);
+  }
+
+  async function tick(){
+    try{
+      const res = await window.pywebview.api.get_balance();
+      if(res.ok){ showBalance(res); }
+      else if(res.need_key){ clearInterval(masterTimer); openSettings('请先填写 DeepSeek API Key'); }
+      else { setStatus('err', (res.error || '错误').slice(0, 40)); }
+    }catch(e){ setStatus('err', String(e).slice(0, 40)); }
+  }
+
+  function startLoop(){
+    clearInterval(masterTimer);
+    countdown = intervalSec;
+    updateCountdown();
+    tick();
+    masterTimer = setInterval(() => {
+      countdown--;
+      if(countdown <= 0){ countdown = intervalSec; tick(); }
+      updateCountdown();
+    }, 1000);
+  }
+
+  function openSettings(hint){
+    if(hint){ $('ovHint').textContent = hint; $('ovHint').classList.add('hint'); }
+    $('overlay').classList.add('show');
+  }
+  function closeSettings(){ $('overlay').classList.remove('show'); $('ovHint').classList.remove('hint'); }
+
+  function setupDrag(){
+    const tb = $('titlebar');
+    if(!tb) return;
+    tb.addEventListener('mousedown', (e) => {
+      if(e.target.closest('.btn')) return;            // 点按钮不触发拖拽
+      let active = true;
+      document.body.style.cursor = 'grabbing';
+      const onMove = (ev) => {
+        if(!active) return;
+        // screenX - clientX = 窗口左边缘绝对坐标；clientY 同理。鼠标在窗口内的抓取点固定。
+        try{ window.pywebview.api.set_position(ev.screenX - ev.clientX, ev.screenY - ev.clientY); }catch(err){}
+      };
+      const onUp = () => {
+        active = false;
+        document.body.style.cursor = '';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
+  setupDrag();
+
+  async function init(){
+    try{
+      const cfg = await window.pywebview.api.get_config();
+      $('apikey').value = cfg.api_key || '';
+      intervalSec = cfg.refresh_interval || 15;
+      $('interval').value = intervalSec;
+      if(!cfg.api_key){ openSettings('请先填写 DeepSeek API Key'); }
+      startLoop();
+    }catch(e){ setStatus('err', '初始化失败'); }
+  }
+
+  $('btnSettings').onclick = () => openSettings();
+  $('btnCancel').onclick = () => closeSettings();
+  $('btnOverlayClose').onclick = () => closeSettings();
+  $('overlay').addEventListener('click', (e) => { if(e.target === $('overlay')) closeSettings(); });
+  $('btnMin').onclick = () => { try{ window.pywebview.api.minimize(); }catch(e){} };
+  $('btnClose').onclick = () => { try{ window.pywebview.api.close(); }catch(e){} };
+  $('btnSave').onclick = async () => {
+    const k = $('apikey').value.trim();
+    const i = parseInt($('interval').value, 10) || 15;
+    try{
+      const cfg = await window.pywebview.api.save_config(k, i);
+      intervalSec = cfg.refresh_interval;
+      closeSettings();
+      startLoop();
+    }catch(e){ setStatus('err', '保存失败'); }
+  };
+
+  if(window.pywebview && window.pywebview.ready){
+    window.pywebview.ready.then(init);
+  }else{
+    window.addEventListener('pywebviewready', init);
+    window.addEventListener('DOMContentLoaded', () => setTimeout(init, 400));
+  }
+</script>
+</body>
+</html>
