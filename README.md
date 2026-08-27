@@ -38,6 +38,8 @@ pythonw main.py
 2. 悬浮窗右上角点 ⚙ 打开设置，粘贴 API Key，设置刷新间隔（秒，最小 5），点「保存」。
 3. 余额会立即刷新并开始按间隔实时更新。
 
+![设置页面](settings.png)
+
 Key 仅保存在本地 `config.json` 中，且该文件已被 `.gitignore` 排除，不会上传到 GitHub 或任何第三方。
 
 ## 操作
